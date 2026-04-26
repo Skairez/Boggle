@@ -7,8 +7,13 @@ import time
 window_height = 800
 window_width = 800
 partitioned_fifths = (window_height / 5)
+x_letter_offset = window_height / 16
+y_letter_offset = window_height / 20
 
 init_window(window_height, window_width, "Boggle Playfield")
+
+# load font
+font = load_font_ex("Arena.ttf", 100, None, 250)
 
 # --- generate board ONCE ---
 dice = {
@@ -40,24 +45,34 @@ dice = {
         # 25 : ['K', 'I', 'QU', 'W', 'L', 'U'] # no implementation for adding extra die yet, MUST be commented out
     }
 
-items_list = list(dice.items())
-random.shuffle(items_list)
-shuffled_dict = dict(items_list)
+# scrambles arrays of letters
+def randomize_board():
+    items_list = list(dice.items())
+    random.shuffle(items_list)
+    shuffled_dict = dict(items_list)
+    
+    # declare empty output list
+    output = []
+    
+    # loop thru dict and rand 1/6 chance of a letter in val array
+    for key, value in shuffled_dict.items():
+        output.append(value[random.randint(0, 5)])
+    return output
 
-output = []
-for key, value in shuffled_dict.items():
-    output.append(value[random.randint(0, 5)])
+output = randomize_board()
 
 # --- main loop ---
 while not window_should_close():
     begin_drawing()
     clear_background(WHITE)
-
-    # draw grid
+    
+    # instructions on refreshing board
+    draw_text_ex(font, "Press R + Shift to randomize board", (10, 10), 20, 1, GRAY)
+    
+    # draw grid lines
     for x in range(5):
         draw_line(int(x*partitioned_fifths + partitioned_fifths), 0,
                   int(x*partitioned_fifths + partitioned_fifths), window_height, BLACK)
-
     for x in range(5):
         draw_line(0, int(x*partitioned_fifths + partitioned_fifths),
                   window_width, int(x*partitioned_fifths + partitioned_fifths), BLACK)
@@ -66,18 +81,21 @@ while not window_should_close():
     i = 0
     for x in range(5):
         for y in range(5):
-            draw_text(output[i],
-                      int(x*partitioned_fifths+50),
-                      int(y*partitioned_fifths+40),
-                      100, BLACK)
+            if len(output[i]) > 1:
+                pos = Vector2(
+                    int(x*partitioned_fifths + x_letter_offset/2.1),
+                    int(y*partitioned_fifths + y_letter_offset)
+                )
+            else:
+                pos = Vector2(
+                    int(x*partitioned_fifths + x_letter_offset),
+                    int(y*partitioned_fifths + y_letter_offset)
+                )
+            draw_text_ex(font, output[i], pos, 100, 0, BLACK)
             i += 1
+    
     # regenerate output here
     if is_key_pressed(82) and (is_key_down(340) or is_key_down(344)):
-        items_list = list(dice.items())
-        random.shuffle(items_list)
-        shuffled_dict = dict(items_list)
-
-        output = []
-        for key, value in shuffled_dict.items():
-            output.append(value[random.randint(0, 5)])
+        output = randomize_board()
+        time.sleep(0.2) # debounce
     end_drawing()
