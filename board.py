@@ -2,15 +2,19 @@ from pyray import *
 import random
 import time
 
-
-# sizing parameters
+#sizing parameter for the window
 window_height = 800
-window_width = 800
-partitioned_fifths = (window_height / 5)
-x_letter_offset = window_height / 16
-y_letter_offset = window_height / 20
+window_width = 1000
 
-init_window(window_height, window_width, "Boggle Playfield")
+# sizing parameters for the boggle board, grid lines, and letter offsets
+board_height = 800
+board_width = 800
+partitioned_fifths = (board_height / 5)
+x_letter_offset = board_height / 16
+y_letter_offset = board_height / 20
+
+# initialize window size NOT board size
+init_window(window_width, window_height, "Boggle Playfield")
 
 # load font
 font = load_font_ex("Arena.ttf", 100, None, 250)
@@ -45,6 +49,11 @@ dice = {
         # 25 : ['K', 'I', 'QU', 'W', 'L', 'U'] # no implementation for adding extra die yet, MUST be commented out
     }
 
+# create space on the board for a button to refresh the board
+
+
+# remove shift+R refresh functionlity, replace with button on the board
+
 # scrambles arrays of letters
 def randomize_board():
     items_list = list(dice.items())
@@ -67,15 +76,16 @@ while not window_should_close():
     clear_background(WHITE)
     
     # instructions on refreshing board
-    draw_text_ex(font, "Press R + Shift to randomize board", (10, 10), 20, 1, GRAY)
+    # draw_text_ex(font, "Press R + Shift to randomize board", (10, 10), 20, 1, GRAY)
     
     # draw grid lines
+    # FIXME: MAKE BOX AROUND LINES AND LINES DO NOT GO TO THE EDGE
     for x in range(5):
         draw_line(int(x*partitioned_fifths + partitioned_fifths), 0,
-                  int(x*partitioned_fifths + partitioned_fifths), window_height, BLACK)
+                  int(x*partitioned_fifths + partitioned_fifths), board_height, BLACK)
     for x in range(5):
         draw_line(0, int(x*partitioned_fifths + partitioned_fifths),
-                  window_width, int(x*partitioned_fifths + partitioned_fifths), BLACK)
+                  board_width, int(x*partitioned_fifths + partitioned_fifths), BLACK)
 
     # draw letters (DON'T pop!)
     i = 0
