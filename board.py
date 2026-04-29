@@ -19,13 +19,24 @@ init_window(window_width, window_height, "Boggle")
 # load font
 font = load_font_ex("Arena.ttf", 100, None, 250)
 
-# refresh button bounds
+# refresh button default variables
 refresh_button_x = window_width - (window_width / 7)
 refresh_button_y = (board_height / 16)
 refresh_button_width = board_width - (board_width - 100)
 refresh_button_height = board_height - (board_height - 50)
-btnBounds = [refresh_button_x, refresh_button_y, 
+newBoardButtonBounds = [refresh_button_x, refresh_button_y, 
              refresh_button_width, refresh_button_height]
+newBoardButtonClicked = False
+
+# timer default variables
+timer_x = window_width - (window_width / 7)
+timer_y = (board_height / 16) + 100
+timer_width = board_width - (board_width - 100)
+timer_height = board_height - (board_height - 50)
+timerBounds = [timer_x, timer_y, timer_width, timer_height]
+startTime = time.time()
+threeMinuteTimer = startTime + 185 # add 5 sec grace
+# timerClicked = False
 
 # --- generate board ONCE ---
 dice = {
@@ -73,26 +84,38 @@ def randomize_board():
 output = randomize_board()
 
 # --- main loop ---
-btnClicked = False
+
 while not window_should_close():
     begin_drawing()
     clear_background(WHITE)
     
-    # FIXME: button checking for left click on hitbox
-    btnClicked = False
-    if (check_collision_point_rec(get_mouse_position(), 
-        btnBounds)):
+    # FIXME: button checking for hover and left click on hitbox
+    newBoardButtonClicked = False
+    if (check_collision_point_rec(get_mouse_position(), newBoardButtonBounds)):
+        # will highlight button green indicating mouse is within hitbox
+        newBoardButtonColor = GREEN
         if is_mouse_button_pressed(0):
-            btnClicked = True
+            newBoardButtonClicked = True
             output = randomize_board()
+            startTime = time.time()
+            threeMinuteTimer = startTime + 185 # add 5 sec grace
             time.sleep(0.2) # debounce
+    else:
+        newBoardButtonColor = LIGHTGRAY
     
-    # button text and rectangle drawing
-    # FIXME: button does not change colors
-    draw_rectangle_rec(btnBounds, GREEN if btnClicked else LIGHTGRAY)
-    draw_text_ex(font, "Refresh", (btnBounds[0] + btnBounds[2] / 2 - 50, 
-                                   btnBounds[1] + btnBounds[3] / 2 - 25), 20, 1, BLACK)
-    # draw grid lines
+    # draw buttons and timer
+    draw_rectangle_rec(newBoardButtonBounds, newBoardButtonColor)
+    draw_rectangle_rec(timerBounds, LIGHTGRAY)
+
+    # FIXME: button text is not centered, magic numbers
+    draw_text_ex(font, "New Board", (newBoardButtonBounds[0] + (newBoardButtonBounds[2] / 2) - 50, 
+                                   newBoardButtonBounds[1] + (newBoardButtonBounds[3] / 2) - 10), (board_height / 39), 1, BLACK)
+    # FIXME: not displaying timer countdown
+    draw_text_ex(font, str(int(threeMinuteTimer - startTime)), (timerBounds[0] + (timerBounds[2] / 2) - 50, 
+                               timerBounds[1] + (timerBounds[3] / 2) - 10), (board_height / 39), 1, BLACK)
+    
+    
+    # boggle board grid
     #@ FIXME: MAKE BOX AROUND LINES AND LINES DO NOT GO TO THE EDGE
     for x in range(5):
         draw_line(int(x*partitioned_fifths + partitioned_fifths), 0,
@@ -101,7 +124,7 @@ while not window_should_close():
         draw_line(0, int(x*partitioned_fifths + partitioned_fifths),
                   board_width, int(x*partitioned_fifths + partitioned_fifths), BLACK)
 
-    # draw letters (DON'T pop!)
+    # draw letters for the boggle board (DON'T pop!)
     i = 0
     for x in range(5):
         for y in range(5):
