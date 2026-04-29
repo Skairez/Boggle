@@ -14,10 +14,18 @@ x_letter_offset = board_height / 16
 y_letter_offset = board_height / 20
 
 # initialize window size NOT board size
-init_window(window_width, window_height, "Boggle Playfield")
+init_window(window_width, window_height, "Boggle")
 
 # load font
 font = load_font_ex("Arena.ttf", 100, None, 250)
+
+# refresh button bounds
+refresh_button_x = window_width - (window_width / 7)
+refresh_button_y = (board_height / 16)
+refresh_button_width = board_width - (board_width - 100)
+refresh_button_height = board_height - (board_height - 50)
+btnBounds = [refresh_button_x, refresh_button_y, 
+             refresh_button_width, refresh_button_height]
 
 # --- generate board ONCE ---
 dice = {
@@ -49,12 +57,7 @@ dice = {
         # 25 : ['K', 'I', 'QU', 'W', 'L', 'U'] # no implementation for adding extra die yet, MUST be commented out
     }
 
-# create space on the board for a button to refresh the board
-
-
-# remove shift+R refresh functionlity, replace with button on the board
-
-# scrambles arrays of letters
+# randomize function: scrambles arrays of letters
 def randomize_board():
     items_list = list(dice.items())
     random.shuffle(items_list)
@@ -67,19 +70,30 @@ def randomize_board():
     for key, value in shuffled_dict.items():
         output.append(value[random.randint(0, 5)])
     return output
-
 output = randomize_board()
 
 # --- main loop ---
+btnClicked = False
 while not window_should_close():
     begin_drawing()
     clear_background(WHITE)
     
-    # instructions on refreshing board
-    # draw_text_ex(font, "Press R + Shift to randomize board", (10, 10), 20, 1, GRAY)
+    # FIXME: button checking for left click on hitbox
+    btnClicked = False
+    if (check_collision_point_rec(get_mouse_position(), 
+        btnBounds)):
+        if is_mouse_button_pressed(0):
+            btnClicked = True
+            output = randomize_board()
+            time.sleep(0.2) # debounce
     
+    # button text and rectangle drawing
+    # FIXME: button does not change colors
+    draw_rectangle_rec(btnBounds, GREEN if btnClicked else LIGHTGRAY)
+    draw_text_ex(font, "Refresh", (btnBounds[0] + btnBounds[2] / 2 - 50, 
+                                   btnBounds[1] + btnBounds[3] / 2 - 25), 20, 1, BLACK)
     # draw grid lines
-    # FIXME: MAKE BOX AROUND LINES AND LINES DO NOT GO TO THE EDGE
+    #@ FIXME: MAKE BOX AROUND LINES AND LINES DO NOT GO TO THE EDGE
     for x in range(5):
         draw_line(int(x*partitioned_fifths + partitioned_fifths), 0,
                   int(x*partitioned_fifths + partitioned_fifths), board_height, BLACK)
@@ -104,8 +118,4 @@ while not window_should_close():
             draw_text_ex(font, output[i], pos, 100, 0, BLACK)
             i += 1
     
-    # regenerate output here
-    if is_key_pressed(82) and (is_key_down(340) or is_key_down(344)):
-        output = randomize_board()
-        time.sleep(0.2) # debounce
     end_drawing()
