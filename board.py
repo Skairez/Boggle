@@ -8,11 +8,11 @@ window_height = 800
 window_width = 1000
 
 # sizing parameters for the boggle board, grid lines, and letter offsets
-board_height = 800
-board_width = 800
+board_height = window_height
+board_width = int(window_width * 0.8)
 partitioned_fifths = (board_height / 5)
-x_letter_offset = board_height / 16
-y_letter_offset = board_height / 20
+x_letter_offset = int(board_width * 0.2)
+y_letter_offset = int(board_height * 0.05)
 
 
 # initialize window size NOT board size
@@ -20,25 +20,26 @@ init_window(window_width, window_height, "Boggle")
 
 
 # Load font with specific characters (0-9, A-Z, a-z)
+boggleFontSize = int(board_height * 0.15)
 char_codes = list(range(48, 58)) + list(range(65, 91)) + list(range(97, 123))  # digits, uppercase, lowercase
-font = load_font_ex("Arena.ttf", 100, None, 95)
+font = load_font_ex("Arena.ttf", boggleFontSize, None, 95)
 numFont = load_font_ex("Arena.ttf", 32, None, 95)
 
 
 # refresh button default variables
-refresh_button_x = window_width - (window_width / 7)
-refresh_button_y = (board_height / 16)
-refresh_button_width = board_width - (board_width - 100)
-refresh_button_height = board_height - (board_height - 50)
+refresh_button_x = int(board_width + ((window_width - board_width) * 0.2))
+refresh_button_y = int(board_height / 16)
+refresh_button_width = int((window_width - board_width ) * 0.6)
+refresh_button_height = int(board_height * 0.1)
 newBoardButtonBounds = [refresh_button_x, refresh_button_y, 
              refresh_button_width, refresh_button_height]
 newBoardButtonClicked = False
 
 # timer default variables
-timer_x = window_width - (window_width / 7)
-timer_y = (board_height / 16) + 100
-timer_width = board_width - (board_width - 100)
-timer_height = board_height - (board_height - 50)
+timer_x =  int(board_width + ((window_width - board_width) * 0.2))
+timer_y = int((board_height / 16) + 100)
+timer_width = int((window_width - board_width ) * 0.6)
+timer_height = int(board_height * 0.1)
 timerBounds = [timer_x, timer_y, timer_width, timer_height]
 threeMinuteTimer = time.time() + 185 # add 5 sec grace
 # timerClicked = False
@@ -128,7 +129,7 @@ while not window_should_close():
     # print(f"timer value: {threeMinuteTimer - time.time()}")
     
     
-    # boggle board grid
+    # boggle board grid lines
     #@ FIXME: MAKE BOX AROUND LINES AND LINES DO NOT GO TO THE EDGE
     for x in range(5):
         draw_line(int(x*partitioned_fifths + partitioned_fifths), 0,
@@ -137,13 +138,15 @@ while not window_should_close():
         draw_line(0, int(x*partitioned_fifths + partitioned_fifths),
                   board_width, int(x*partitioned_fifths + partitioned_fifths), BLACK)
 
+
     # draw letters for the boggle board (DON'T pop!)
     i = 0
     for x in range(5):
         for y in range(5):
             if len(output[i]) > 1:
                 pos = Vector2(
-                    int(x*partitioned_fifths + x_letter_offset/2.1),
+                    # FIXME: i changed stuff at the top now letters are offset :(
+                    int(x*partitioned_fifths + (x_letter_offset * 4.762 * i)),
                     int(y*partitioned_fifths + y_letter_offset)
                 )
             else:
@@ -151,7 +154,7 @@ while not window_should_close():
                     int(x*partitioned_fifths + x_letter_offset),
                     int(y*partitioned_fifths + y_letter_offset)
                 )
-            draw_text_ex(font, output[i], pos, 100, 0, BLACK)
+            draw_text_ex(font, output[i], pos, boggleFontSize, 0, BLACK)
             i += 1
     
     end_drawing()
