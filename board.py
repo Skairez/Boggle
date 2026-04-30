@@ -1,6 +1,7 @@
 from pyray import *
 import random
 import time
+from raylib import TextFormat
 
 #sizing parameter for the window
 window_height = 800
@@ -13,11 +14,16 @@ partitioned_fifths = (board_height / 5)
 x_letter_offset = board_height / 16
 y_letter_offset = board_height / 20
 
+
 # initialize window size NOT board size
 init_window(window_width, window_height, "Boggle")
 
-# load font
-font = load_font_ex("Arena.ttf", 100, None, 250)
+
+# Load font with specific characters (0-9, A-Z, a-z)
+char_codes = list(range(48, 58)) + list(range(65, 91)) + list(range(97, 123))  # digits, uppercase, lowercase
+font = load_font_ex("Arena.ttf", 100, None, 95)
+numFont = load_font_ex("Arena.ttf", 32, None, 95)
+
 
 # refresh button default variables
 refresh_button_x = window_width - (window_width / 7)
@@ -34,8 +40,7 @@ timer_y = (board_height / 16) + 100
 timer_width = board_width - (board_width - 100)
 timer_height = board_height - (board_height - 50)
 timerBounds = [timer_x, timer_y, timer_width, timer_height]
-startTime = time.time()
-threeMinuteTimer = startTime + 185 # add 5 sec grace
+threeMinuteTimer = time.time() + 185 # add 5 sec grace
 # timerClicked = False
 
 # --- generate board ONCE ---
@@ -97,8 +102,7 @@ while not window_should_close():
         if is_mouse_button_pressed(0):
             newBoardButtonClicked = True
             output = randomize_board()
-            startTime = time.time()
-            threeMinuteTimer = startTime + 185 # add 5 sec grace
+            threeMinuteTimer = time.time() + 185 # add 5 sec grace
             time.sleep(0.2) # debounce
     else:
         newBoardButtonColor = LIGHTGRAY
@@ -108,11 +112,20 @@ while not window_should_close():
     draw_rectangle_rec(timerBounds, LIGHTGRAY)
 
     # FIXME: button text is not centered, magic numbers
-    draw_text_ex(font, "New Board", (newBoardButtonBounds[0] + (newBoardButtonBounds[2] / 2) - 50, 
+    draw_text_ex(font, "New Board", (newBoardButtonBounds[0] + (newBoardButtonBounds[2] / 2) - 45, 
                                    newBoardButtonBounds[1] + (newBoardButtonBounds[3] / 2) - 10), (board_height / 39), 1, BLACK)
     # FIXME: not displaying timer countdown
-    draw_text_ex(font, str(int(threeMinuteTimer - startTime)), (timerBounds[0] + (timerBounds[2] / 2) - 50, 
-                               timerBounds[1] + (timerBounds[3] / 2) - 10), (board_height / 39), 1, BLACK)
+    timerText = f"{int(threeMinuteTimer - time.time())}"
+    # draw_text_ex(numFont, timerText,
+    #             Vector2(500, 500),
+    #             20, 1, BLACK)
+    # timer displays correctly here with default font :(
+    # FIXME: custom font, off center, magic number font size
+    draw_text(timerText,
+                int(timerBounds[0]), 
+                int(timerBounds[1]), 
+                40, BLACK)
+    # print(f"timer value: {threeMinuteTimer - time.time()}")
     
     
     # boggle board grid
