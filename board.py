@@ -2,6 +2,10 @@ from pyray import *
 import random
 import time
 from raylib import TextFormat
+## TO DO
+# - make button class to easily duplicate button sizes
+# - make text input option
+# - add a cover for the 5 second grade period then "READY? START" reveal
 
 #sizing parameter for the window
 window_height = 800
@@ -26,6 +30,7 @@ font = load_font_ex("Arena.ttf", boggleFontSize, None, 95)
 numFont = load_font_ex("Arena.ttf", 32, None, 95)
 
 
+# FIXME: these buttons can be simplified into a class for size, only Y level changing
 # refresh button default variables
 refresh_button_x = int(board_width + ((window_width - board_width) * 0.2))
 refresh_button_y = int(board_height / 16)
@@ -41,8 +46,7 @@ timer_y = int((board_height / 16) + 100)
 timer_width = int((window_width - board_width ) * 0.6)
 timer_height = int(board_height * 0.1)
 timerBounds = [timer_x, timer_y, timer_width, timer_height]
-threeMinuteTimer = time.time() + 185 # add 5 sec grace
-# timerClicked = False
+threeMinuteTimer = time.time() + 186 # add 5 sec grace
 
 # --- generate board ONCE ---
 dice = {
@@ -116,15 +120,18 @@ while not window_should_close():
     draw_text_ex(font, "New Board", (newBoardButtonBounds[0] + (newBoardButtonBounds[2] / 2) - 45, 
                                    newBoardButtonBounds[1] + (newBoardButtonBounds[3] / 2) - 10), (board_height / 39), 1, BLACK)
     # FIXME: not displaying timer countdown
-    timerText = f"{int(threeMinuteTimer - time.time())}"
+    
+    timerMin = int(threeMinuteTimer - time.time()) // 60
+    timerSec = int(threeMinuteTimer - time.time()) % 60
+    timerText = f"{timerMin:02d}:{timerSec:02d}"
     # draw_text_ex(numFont, timerText,
     #             Vector2(500, 500),
     #             20, 1, BLACK)
     # timer displays correctly here with default font :(
     # FIXME: custom font, off center, magic number font size
     draw_text(timerText,
-                int(timerBounds[0]), 
-                int(timerBounds[1]), 
+                int(timerBounds[0] + (timerBounds[2] * 0.1)), 
+                int(timerBounds[1] + (timerBounds[3] * 0.25)), 
                 40, BLACK)
     # print(f"timer value: {threeMinuteTimer - time.time()}")
     
@@ -145,14 +152,13 @@ while not window_should_close():
         for y in range(5):
             if len(output[i]) > 1:
                 pos = Vector2(
-                    # FIXME: i changed stuff at the top now letters are offset :(
-                    int(x*partitioned_fifths + (x_letter_offset * 4.762 * i)),
-                    int(y*partitioned_fifths + y_letter_offset)
+                    int(x*partitioned_fifths + (partitioned_fifths * 0.5) - (boggleFontSize * 0.55)),
+                    int(y*partitioned_fifths + (y_letter_offset * 0.8))
                 )
             else:
                 pos = Vector2(
-                    int(x*partitioned_fifths + x_letter_offset),
-                    int(y*partitioned_fifths + y_letter_offset)
+                    int(x*partitioned_fifths + (partitioned_fifths * 0.5) - (boggleFontSize * 0.4)),
+                    int(y*partitioned_fifths + (y_letter_offset * 0.8))
                 )
             draw_text_ex(font, output[i], pos, boggleFontSize, 0, BLACK)
             i += 1
