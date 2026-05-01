@@ -2,10 +2,12 @@ from pyray import *
 import random
 import time
 from raylib import TextFormat
+
 ## TO DO
 # - make button class to easily duplicate button sizes
 # - make text input option
 # - add a cover for the 5 second grade period then "READY? START" reveal
+# - figure out why timer font is so ass and brokeny
 
 #sizing parameter for the window
 window_height = 800
@@ -46,7 +48,9 @@ timer_y = int((board_height / 16) + 100)
 timer_width = int((window_width - board_width ) * 0.6)
 timer_height = int(board_height * 0.1)
 timerBounds = [timer_x, timer_y, timer_width, timer_height]
-threeMinuteTimer = time.time() + 186 # add 5 sec grace
+threeMinuteTimer = time.time() + 4 # add 5 sec grace
+timerFlash = False
+timerFlashAlternator = 0
 
 # --- generate board ONCE ---
 dice = {
@@ -99,7 +103,7 @@ while not window_should_close():
     begin_drawing()
     clear_background(WHITE)
     
-    # FIXME: button checking for hover and left click on hitbox
+    # refresh button checking for hover of mouse to turn green
     newBoardButtonClicked = False
     if (check_collision_point_rec(get_mouse_position(), newBoardButtonBounds)):
         # will highlight button green indicating mouse is within hitbox
@@ -107,7 +111,7 @@ while not window_should_close():
         if is_mouse_button_pressed(0):
             newBoardButtonClicked = True
             output = randomize_board()
-            threeMinuteTimer = time.time() + 185 # add 5 sec grace
+            threeMinuteTimer = time.time() + 10 # 186 sec- add 5 sec grace
             time.sleep(0.2) # debounce
     else:
         newBoardButtonColor = LIGHTGRAY
@@ -116,11 +120,12 @@ while not window_should_close():
     draw_rectangle_rec(newBoardButtonBounds, newBoardButtonColor)
     draw_rectangle_rec(timerBounds, LIGHTGRAY)
 
-    # FIXME: button text is not centered, magic numbers
+    # draw refresh button
     draw_text_ex(font, "New Board", (newBoardButtonBounds[0] + (newBoardButtonBounds[2] / 2) - 45, 
                                    newBoardButtonBounds[1] + (newBoardButtonBounds[3] / 2) - 10), (board_height / 39), 1, BLACK)
-    # FIXME: not displaying timer countdown
     
+    
+    # FIXME: only displays in default font
     timerMin = int(threeMinuteTimer - time.time()) // 60
     timerSec = int(threeMinuteTimer - time.time()) % 60
     timerText = f"{timerMin:02d}:{timerSec:02d}"
@@ -134,6 +139,23 @@ while not window_should_close():
                 int(timerBounds[1] + (timerBounds[3] * 0.25)), 
                 40, BLACK)
     # print(f"timer value: {threeMinuteTimer - time.time()}")
+
+    # if timer = 0, timer flashes between red and grey
+    # FIXME: timer spazzes then stays grey/red for 1 sec then spazzes, not clean sec intervals
+    timerFlashAlternator += int(timerSec // 1) # alternates every second after timer hits 0
+    if threeMinuteTimer - time.time() <= 0 and timerFlashAlternator % 2 == 0:
+        draw_rectangle_rec(timerBounds, RED)
+        draw_text("00:00",
+                int(timerBounds[0] + (timerBounds[2] * 0.1)), 
+                int(timerBounds[1] + (timerBounds[3] * 0.25)), 
+                40, WHITE)
+        timerFlash = True
+    elif threeMinuteTimer - time.time() <= 0 and timerFlashAlternator % 2 != 0:
+        draw_rectangle_rec(timerBounds, GRAY)
+        draw_text("00:00",
+                int(timerBounds[0] + (timerBounds[2] * 0.1)), 
+                int(timerBounds[1] + (timerBounds[3] * 0.25)), 
+                40, WHITE)
     
     
     # boggle board grid lines
