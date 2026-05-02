@@ -7,7 +7,19 @@ from raylib import TextFormat
 # - make button class to easily duplicate button sizes
 # - make text input option
 # - add a cover for the 5 second grade period then "READY? START" reveal
-# - figure out why timer font is so ass and brokeny
+# - lock board until "start" is clicked and after timer runs out
+# - add class for game parameter? (eg. timer length)
+# - add way to delete last word submitted, potentially add "pages" of submitted words (for genius players)
+# - create 4 letter word limit
+# - score points based on word length, flag words not in dictionary and give players option to vote to accept word into dict
+
+
+# game variables for word bank of the player
+roundTime = 186 # 3 min + 5 sec grace
+word = ""
+already_used_letter = []
+wordsGuessed = []
+
 
 #sizing parameter for the window
 window_height = 800
@@ -48,7 +60,7 @@ timer_y = int((board_height / 16) + 100)
 timer_width = int((window_width - board_width ) * 0.6)
 timer_height = int(board_height * 0.1)
 timerBounds = [timer_x, timer_y, timer_width, timer_height]
-threeMinuteTimer = time.time() + 4 # add 5 sec grace- also much
+threeMinuteTimer = time.time() + roundTime # add 5 sec grace- also much
 
 # --- generate board ONCE ---
 dice = {
@@ -84,19 +96,19 @@ dice = {
 def randomize_board():
     items_list = list(dice.items())
     random.shuffle(items_list)
-    shuffled_dict = dict(items_list)
-    
+    shuffled_dict = dict(items_list)  
     # declare empty output list
     output = []
-    
     # loop thru dict and rand 1/6 chance of a letter in val array
     for key, value in shuffled_dict.items():
         output.append(value[random.randint(0, 5)])
     return output
 output = randomize_board()
 
-position_string_dict = dict()
 
+
+position_string_dict = dict()
+# returns letter at position of mouse, if within hitbox of a letter, else returns empty string
 def get_letter_at_position():
         for x in range(5):
             for y in range(5):
@@ -111,6 +123,8 @@ def get_letter_at_position():
                 else: continue  
         return ""
 
+
+# returns cords of letter at position of mouse, if within hitbox of a letter, else returns empty tuple
 def get_cords():
         for x in range(5):
             for y in range(5):
@@ -125,8 +139,8 @@ def get_cords():
                 else: continue
         return ()
 
-word = ""
-already_used_letter = []
+
+
 
 # --- main loop ---
 
@@ -134,23 +148,29 @@ while not window_should_close():
     begin_drawing()
     clear_background(WHITE)
 
-    if is_mouse_button_pressed(0):
-        word = ""
-        already_used_letter.clear()
-
+    # click and drag to combine letters into word, release to submit word
     if is_mouse_button_down(0):
         cord = get_cords()
-
         if cord and cord not in already_used_letter:
                 letter = get_letter_at_position()
                 word = word + letter
                 already_used_letter.append(cord)
-  
     if is_mouse_button_released(0):
-        draw_text(word, 50, 100, 50, BLUE)
+        wordsGuessed.append(word)
+        word = ""
+        already_used_letter.clear()
 
 
-    draw_text(word, 50, 100, 50, BLUE)
+
+    # continuously displays list of submitted words
+    # FIXME: magic numbers: y offset, font size
+    # FIXME: cannot list words with numbers due to default font issue
+    for i, w in enumerate(wordsGuessed):
+        draw_text_ex(font, w, 
+                     Vector2(refresh_button_x, (refresh_button_y + (board_height * 0.3 )) + (i * 30)), 
+                     30, 1, BLUE)
+    
+    
     
     # refresh button checking for hover of mouse to turn green
     newBoardButtonClicked = False
@@ -160,15 +180,17 @@ while not window_should_close():
         if is_mouse_button_pressed(0):
             newBoardButtonClicked = True
             output = randomize_board()
-            threeMinuteTimer = time.time() + 6 # 186 sec- add 5 sec grace
+            threeMinuteTimer = time.time() + roundTime # 186 sec- add 5 sec grace
             time.sleep(0.2) # debounce
     else:
         newBoardButtonColor = LIGHTGRAY
     
     
+    
     # draw buttons and timer
     draw_rectangle_rec(newBoardButtonBounds, newBoardButtonColor)
     draw_rectangle_rec(timerBounds, LIGHTGRAY)
+
 
     # draw refresh button
     draw_text_ex(font, "New Board", (newBoardButtonBounds[0] + (newBoardButtonBounds[2] / 2) - 45, 
@@ -214,6 +236,7 @@ while not window_should_close():
                   board_width, int(x*partitioned_fifths + partitioned_fifths), BLACK)
 
 
+
     # draw letters for the boggle board (DON'T pop!)
     i = 0
     for x in range(5):
@@ -233,16 +256,11 @@ while not window_should_close():
                     int(x*partitioned_fifths + (partitioned_fifths * 0.5) - (boggleFontSize * 0.3)),
                     int(y*partitioned_fifths + (y_letter_offset * 0.8))
                 )
-
             pos_x = int(x*partitioned_fifths + (partitioned_fifths * 0.5))
             pos_y = int(y*partitioned_fifths + (y_letter_offset * 0.8))
-
             output_currently = output[i]
-
             draw_text_ex(font, output[i], pos, boggleFontSize, 0, BLACK)
-
             draw_circle_lines(pos_x, pos_y + 44, 55, RED);
-
             position_string_dict[(pos_x, pos_y + 44)] = output_currently
             i += 1
     
