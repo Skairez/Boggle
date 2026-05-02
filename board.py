@@ -95,11 +95,62 @@ def randomize_board():
     return output
 output = randomize_board()
 
+position_string_dict = dict()
+
+def get_letter_at_position():
+        for x in range(5):
+            for y in range(5):
+                
+                pos_x = int(x*partitioned_fifths + (partitioned_fifths * 0.5))
+                pos_y = int(y*partitioned_fifths + (y_letter_offset * 0.8))
+                        
+                if (check_collision_point_circle(get_mouse_position(), (pos_x , pos_y + 44), 55)):
+                    letter_at_pos = position_string_dict[(pos_x, pos_y + 44)]
+                    return letter_at_pos
+                
+                else: continue  
+        return ""
+
+def get_cords():
+        for x in range(5):
+            for y in range(5):
+                
+                pos_x = int(x*partitioned_fifths + (partitioned_fifths * 0.5))
+                pos_y = int(y*partitioned_fifths + (y_letter_offset * 0.8))
+                        
+                if (check_collision_point_circle(get_mouse_position(), (pos_x, pos_y + 44), 55)):
+                    cord = (pos_x, pos_y + 44)
+                    return cord
+                
+                else: continue
+        return ()
+
+word = ""
+already_used_letter = []
+
 # --- main loop ---
 
 while not window_should_close():
     begin_drawing()
     clear_background(WHITE)
+
+    if is_mouse_button_pressed(0):
+        word = ""
+        already_used_letter.clear()
+
+    if is_mouse_button_down(0):
+        cord = get_cords()
+
+        if cord and cord not in already_used_letter:
+                letter = get_letter_at_position()
+                word = word + letter
+                already_used_letter.append(cord)
+  
+    if is_mouse_button_released(0):
+        draw_text(word, 50, 100, 50, BLUE)
+
+
+    draw_text(word, 50, 100, 50, BLUE)
     
     # refresh button checking for hover of mouse to turn green
     newBoardButtonClicked = False
@@ -172,12 +223,27 @@ while not window_should_close():
                     int(x*partitioned_fifths + (partitioned_fifths * 0.5) - (boggleFontSize * 0.55)),
                     int(y*partitioned_fifths + (y_letter_offset * 0.8))
                 )
-            else:
+            elif output[i] == "I":
                 pos = Vector2(
-                    int(x*partitioned_fifths + (partitioned_fifths * 0.5) - (boggleFontSize * 0.4)),
+                    int(x*partitioned_fifths + (partitioned_fifths * 0.5) - (boggleFontSize * 0.15)),
                     int(y*partitioned_fifths + (y_letter_offset * 0.8))
                 )
+            else:
+                pos = Vector2(
+                    int(x*partitioned_fifths + (partitioned_fifths * 0.5) - (boggleFontSize * 0.3)),
+                    int(y*partitioned_fifths + (y_letter_offset * 0.8))
+                )
+
+            pos_x = int(x*partitioned_fifths + (partitioned_fifths * 0.5))
+            pos_y = int(y*partitioned_fifths + (y_letter_offset * 0.8))
+
+            output_currently = output[i]
+
             draw_text_ex(font, output[i], pos, boggleFontSize, 0, BLACK)
+
+            draw_circle_lines(pos_x, pos_y + 44, 55, RED);
+
+            position_string_dict[(pos_x, pos_y + 44)] = output_currently
             i += 1
     
     end_drawing()
