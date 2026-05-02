@@ -48,9 +48,7 @@ timer_y = int((board_height / 16) + 100)
 timer_width = int((window_width - board_width ) * 0.6)
 timer_height = int(board_height * 0.1)
 timerBounds = [timer_x, timer_y, timer_width, timer_height]
-threeMinuteTimer = time.time() + 4 # add 5 sec grace
-timerFlash = False
-timerFlashAlternator = 0
+threeMinuteTimer = time.time() + 4 # add 5 sec grace- also much
 
 # --- generate board ONCE ---
 dice = {
@@ -111,10 +109,11 @@ while not window_should_close():
         if is_mouse_button_pressed(0):
             newBoardButtonClicked = True
             output = randomize_board()
-            threeMinuteTimer = time.time() + 10 # 186 sec- add 5 sec grace
+            threeMinuteTimer = time.time() + 6 # 186 sec- add 5 sec grace
             time.sleep(0.2) # debounce
     else:
         newBoardButtonColor = LIGHTGRAY
+    
     
     # draw buttons and timer
     draw_rectangle_rec(newBoardButtonBounds, newBoardButtonColor)
@@ -126,31 +125,28 @@ while not window_should_close():
     
     
     # FIXME: only displays in default font
-    timerMin = int(threeMinuteTimer - time.time()) // 60
-    timerSec = int(threeMinuteTimer - time.time()) % 60
+    timerValue = int(threeMinuteTimer - time.time())
+    timerMin = int(abs(timerValue)) // 60
+    timerSec = int(abs(timerValue)) % 60
     timerText = f"{timerMin:02d}:{timerSec:02d}"
     # draw_text_ex(numFont, timerText,
     #             Vector2(500, 500),
     #             20, 1, BLACK)
-    # timer displays correctly here with default font :(
-    # FIXME: custom font, off center, magic number font size
     draw_text(timerText,
                 int(timerBounds[0] + (timerBounds[2] * 0.1)), 
                 int(timerBounds[1] + (timerBounds[3] * 0.25)), 
                 40, BLACK)
-    # print(f"timer value: {threeMinuteTimer - time.time()}")
 
+    
     # if timer = 0, timer flashes between red and grey
-    # FIXME: timer spazzes then stays grey/red for 1 sec then spazzes, not clean sec intervals
-    timerFlashAlternator += int(timerSec // 1) # alternates every second after timer hits 0
-    if threeMinuteTimer - time.time() <= 0 and timerFlashAlternator % 2 == 0:
+    if timerValue <= 0 and (abs(timerValue) // 1) % 2 == 0: # first red lasts 2 seconds?, then 1 sec alt
         draw_rectangle_rec(timerBounds, RED)
         draw_text("00:00",
                 int(timerBounds[0] + (timerBounds[2] * 0.1)), 
                 int(timerBounds[1] + (timerBounds[3] * 0.25)), 
                 40, WHITE)
         timerFlash = True
-    elif threeMinuteTimer - time.time() <= 0 and timerFlashAlternator % 2 != 0:
+    elif timerValue <= 0 and (abs(timerValue) // 1) % 2 != 0:
         draw_rectangle_rec(timerBounds, GRAY)
         draw_text("00:00",
                 int(timerBounds[0] + (timerBounds[2] * 0.1)), 
@@ -159,7 +155,6 @@ while not window_should_close():
     
     
     # boggle board grid lines
-    #@ FIXME: MAKE BOX AROUND LINES AND LINES DO NOT GO TO THE EDGE
     for x in range(5):
         draw_line(int(x*partitioned_fifths + partitioned_fifths), 0,
                   int(x*partitioned_fifths + partitioned_fifths), board_height, BLACK)
