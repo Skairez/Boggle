@@ -4,14 +4,24 @@ import time
 from raylib import TextFormat
 
 ## TO DO
+
+# REFACTOR:
 # - make button class to easily duplicate button sizes
+# - add file for game parameter? (eg. timer length)
+
+# LOGIC:
 # - make text input option
-# - add a cover for the 5 second grade period then "READY? START" reveal
 # - lock board until "start" is clicked and after timer runs out
-# - add class for game parameter? (eg. timer length)
 # - add way to delete last word submitted, potentially add "pages" of submitted words (for genius players)
 # - create 4 letter word limit
 # - score points based on word length, flag words not in dictionary and give players option to vote to accept word into dict
+# - make statistics for words played
+# - MULTIPLAYER
+
+# DESIGN:
+# - hover on word and see how it got made show the lines
+# - connect letters with lines maybe animate
+# - add a cover for the 5 second grade period then "READY? START" reveal
 
 
 # game variables for word bank of the player
@@ -137,7 +147,6 @@ def get_cords():
                     return cord
                 
                 else: continue
-        return ()
 
 
 
@@ -155,6 +164,7 @@ while not window_should_close():
                 letter = get_letter_at_position()
                 word = word + letter
                 already_used_letter.append(cord)
+
     if is_mouse_button_released(0):
         wordsGuessed.append(word)
         word = ""
@@ -166,7 +176,7 @@ while not window_should_close():
     # FIXME: magic numbers: y offset, font size
     # FIXME: cannot list words with numbers due to default font issue
     for i, w in enumerate(wordsGuessed):
-        draw_text_ex(font, w, 
+        draw_text_ex(font, f"{i} : {w}", 
                      Vector2(refresh_button_x, (refresh_button_y + (board_height * 0.3 )) + (i * 30)), 
                      30, 1, BLUE)
     
@@ -182,6 +192,7 @@ while not window_should_close():
             output = randomize_board()
             threeMinuteTimer = time.time() + roundTime # 186 sec- add 5 sec grace
             time.sleep(0.2) # debounce
+            wordsGuessed = []
     else:
         newBoardButtonColor = LIGHTGRAY
     
