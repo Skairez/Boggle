@@ -25,15 +25,15 @@ from raylib import TextFormat
 
 
 # game variables for word bank of the player
-roundTime = 186 # 3 min + 5 sec grace
+roundTime = 186 # 186 -> 3 min + 5 sec grace for game; 4 for testing timer hit 0
 word = ""
 already_used_letter = []
 wordsGuessed = []
 
 
 #sizing parameter for the window
-window_height = 800
 window_width = 1000
+window_height = int(window_width * 0.8)
 
 # sizing parameters for the boggle board, grid lines, and letter offsets
 board_height = window_height
@@ -49,9 +49,13 @@ init_window(window_width, window_height, "Boggle")
 
 # Load font with specific characters (0-9, A-Z, a-z)
 boggleFontSize = int(board_height * 0.15)
-char_codes = list(range(48, 58)) + list(range(65, 91)) + list(range(97, 123))  # digits, uppercase, lowercase
-font = load_font_ex("Arena.ttf", boggleFontSize, None, 95)
-numFont = load_font_ex("Arena.ttf", 32, None, 95)
+newGameFontSize = int(board_height * 0.035)
+timerFontSize = int(board_height * 0.05)
+guessesFontSize = int(board_height * 0.03)
+boardFont = load_font_ex("PlatNomor.ttf", boggleFontSize, None, 95)
+newGameFont = load_font_ex("PlatNomor.ttf", newGameFontSize, None, 95)
+timerFont = load_font_ex("PlatNomor.ttf", timerFontSize, None, 95)
+guessesFont = load_font_ex("PlatNomor.ttf", guessesFontSize, None, 95)
 
 
 # FIXME: these buttons can be simplified into a class for size, only Y level changing
@@ -164,22 +168,17 @@ while not window_should_close():
                 letter = get_letter_at_position()
                 word = word + letter
                 already_used_letter.append(cord)
-
     if is_mouse_button_released(0):
         wordsGuessed.append(word)
         word = ""
         already_used_letter.clear()
 
 
-
     # continuously displays list of submitted words
-    # FIXME: magic numbers: y offset, font size
-    # FIXME: cannot list words with numbers due to default font issue
     for i, w in enumerate(wordsGuessed):
-        draw_text_ex(font, f"{i} : {w}", 
-                     Vector2(refresh_button_x, (refresh_button_y + (board_height * 0.3 )) + (i * 30)), 
-                     30, 1, BLUE)
-    
+        draw_text_ex(guessesFont, f"{i}. {w}", 
+                     Vector2(refresh_button_x, (refresh_button_y + (board_height * 0.3)) + (i * (guessesFontSize))), 
+                     guessesFontSize, 1, BLACK)
     
     
     # refresh button checking for hover of mouse to turn green
@@ -197,45 +196,44 @@ while not window_should_close():
         newBoardButtonColor = LIGHTGRAY
     
     
-    
     # draw buttons and timer
     draw_rectangle_rec(newBoardButtonBounds, newBoardButtonColor)
     draw_rectangle_rec(timerBounds, LIGHTGRAY)
 
 
     # draw refresh button
-    draw_text_ex(font, "New Board", (newBoardButtonBounds[0] + (newBoardButtonBounds[2] / 2) - 45, 
-                                   newBoardButtonBounds[1] + (newBoardButtonBounds[3] / 2) - 10), (board_height / 39), 1, BLACK)
+    # FIXME: magic numbers
+    draw_text_ex(newGameFont, "New Game", 
+                Vector2(int(newBoardButtonBounds[0] + (newBoardButtonBounds[2] * 0.5) - (board_width * newGameFontSize * 0.0025)), 
+                        int(newBoardButtonBounds[1] + (newBoardButtonBounds[3] * 0.4))), 
+                newGameFontSize, 1, BLACK)
     
     
-    # FIXME: only displays in default font
+    # Timer countdown display
     timerValue = int(threeMinuteTimer - time.time())
     timerMin = int(abs(timerValue)) // 60
     timerSec = int(abs(timerValue)) % 60
     timerText = f"{timerMin:02d}:{timerSec:02d}"
-    # draw_text_ex(numFont, timerText,
-    #             Vector2(500, 500),
-    #             20, 1, BLACK)
-    draw_text(timerText,
-                int(timerBounds[0] + (timerBounds[2] * 0.1)), 
-                int(timerBounds[1] + (timerBounds[3] * 0.25)), 
-                40, BLACK)
+    draw_text_ex(timerFont, timerText,
+                Vector2(int(timerBounds[0] + (timerBounds[2] * timerFontSize * 0.0025)), 
+                        int(timerBounds[1] + (timerBounds[3] * 0.3))),
+                timerFontSize, 1, BLACK)
 
     
     # if timer = 0, timer flashes between red and grey
     if timerValue <= 0 and (abs(timerValue) // 1) % 2 == 0: # first red lasts 2 seconds?, then 1 sec alt
         draw_rectangle_rec(timerBounds, RED)
-        draw_text("00:00",
-                int(timerBounds[0] + (timerBounds[2] * 0.1)), 
-                int(timerBounds[1] + (timerBounds[3] * 0.25)), 
-                40, WHITE)
+        draw_text_ex(timerFont, "00:00",
+                Vector2(int(timerBounds[0] + (timerBounds[2] * timerFontSize * 0.0025)), 
+                        int(timerBounds[1] + (timerBounds[3] * 0.3))),
+                timerFontSize, 1, WHITE)
         timerFlash = True
     elif timerValue <= 0 and (abs(timerValue) // 1) % 2 != 0:
         draw_rectangle_rec(timerBounds, GRAY)
-        draw_text("00:00",
-                int(timerBounds[0] + (timerBounds[2] * 0.1)), 
-                int(timerBounds[1] + (timerBounds[3] * 0.25)), 
-                40, WHITE)
+        draw_text_ex(timerFont, "00:00",
+                Vector2(int(timerBounds[0] + (timerBounds[2] * timerFontSize * 0.0025)), 
+                        int(timerBounds[1] + (timerBounds[3] * 0.3))),
+                timerFontSize, 1, WHITE)
     
     
     # boggle board grid lines
@@ -245,7 +243,6 @@ while not window_should_close():
     for x in range(5):
         draw_line(0, int(x*partitioned_fifths + partitioned_fifths),
                   board_width, int(x*partitioned_fifths + partitioned_fifths), BLACK)
-
 
 
     # draw letters for the boggle board (DON'T pop!)
@@ -259,18 +256,18 @@ while not window_should_close():
                 )
             elif output[i] == "I":
                 pos = Vector2(
-                    int(x*partitioned_fifths + (partitioned_fifths * 0.5) - (boggleFontSize * 0.15)),
+                    int(x*partitioned_fifths + (partitioned_fifths * 0.5) - (boggleFontSize * 0.11)),
                     int(y*partitioned_fifths + (y_letter_offset * 0.8))
                 )
             else:
                 pos = Vector2(
-                    int(x*partitioned_fifths + (partitioned_fifths * 0.5) - (boggleFontSize * 0.3)),
+                    int(x*partitioned_fifths + (partitioned_fifths * 0.5) - (boggleFontSize * 0.24)),
                     int(y*partitioned_fifths + (y_letter_offset * 0.8))
                 )
             pos_x = int(x*partitioned_fifths + (partitioned_fifths * 0.5))
             pos_y = int(y*partitioned_fifths + (y_letter_offset * 0.8))
             output_currently = output[i]
-            draw_text_ex(font, output[i], pos, boggleFontSize, 0, BLACK)
+            draw_text_ex(boardFont, output[i], pos, boggleFontSize, 0, BLACK)
             draw_circle_lines(pos_x, pos_y + 44, 55, RED);
             position_string_dict[(pos_x, pos_y + 44)] = output_currently
             i += 1
