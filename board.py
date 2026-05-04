@@ -17,10 +17,11 @@ from raylib import TextFormat
 # - score points based on word length, flag words not in dictionary and give players option to vote to accept word into dict
 # - make statistics for words played
 # - MULTIPLAYER
+# - add validate logic that allows only letters to connect to adjacent letters
 
 # DESIGN:
-# - hover on word and see how it got made show the lines
-# - connect letters with lines maybe animate
+# - hover on word and see how it got made show the lines (daniel task)
+# - connect letters with lines maybe animate (daniel task)
 # - add a cover for the 5 second grade period then "READY? START" reveal
 
 
@@ -34,6 +35,7 @@ wordsGuessed = []
 #sizing parameter for the window
 window_width = 1000
 window_height = int(window_width * 0.8)
+
 
 # sizing parameters for the boggle board, grid lines, and letter offsets
 board_height = window_height
@@ -120,7 +122,6 @@ def randomize_board():
 output = randomize_board()
 
 
-
 position_string_dict = dict()
 # returns letter at position of mouse, if within hitbox of a letter, else returns empty string
 def get_letter_at_position():
@@ -153,26 +154,36 @@ def get_cords():
                 else: continue
 
 
-
+lastKnownPosition = ()
 
 # --- main loop ---
-
 while not window_should_close():
     begin_drawing()
     clear_background(WHITE)
 
     # click and drag to combine letters into word, release to submit word
+    # FIXME: it only prints the first letter, not sure how to make the tuple math work
     if is_mouse_button_down(0):
         cord = get_cords()
         if cord and cord not in already_used_letter:
+            if not lastKnownPosition:  # If this is the first letter being selected
                 letter = get_letter_at_position()
                 word = word + letter
                 already_used_letter.append(cord)
+                lastKnownPosition = cord
+                print(f"Selected coordinate at position: {cord[0]}, {cord[1]}")
+                print(f"Last known position: {lastKnownPosition[0]}, {lastKnownPosition[1]}")
+            else:
+                if abs(cord[0] - lastKnownPosition[0]) <= 1 and abs(cord[1] - lastKnownPosition[1]) <= 1:  # Check if the current position is adjacent to the last known position
+                    letter = get_letter_at_position()
+                    word = word + letter
+                    already_used_letter.append(cord)
+                    lastKnownPosition = cord
     if is_mouse_button_released(0):
         wordsGuessed.append(word)
         word = ""
         already_used_letter.clear()
-
+        lastKnownPosition = ()
 
     # continuously displays list of submitted words
     for i, w in enumerate(wordsGuessed):
