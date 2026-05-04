@@ -17,7 +17,7 @@ from raylib import TextFormat
 # - score points based on word length, flag words not in dictionary and give players option to vote to accept word into dict
 # - make statistics for words played
 # - MULTIPLAYER
-# - add validate logic that allows only letters to connect to adjacent letters
+# - [DONE]add validate logic that allows only letters to connect to adjacent letters
 
 # DESIGN:
 # - hover on word and see how it got made show the lines (daniel task)
@@ -26,7 +26,8 @@ from raylib import TextFormat
 
 
 # game variables for word bank of the player
-roundTime = 186 # 186 -> 3 min + 5 sec grace for game; 4 for testing timer hit 0
+roundTime = 180 # 186 -> 3 min round timer
+roundCountdownTime = 6 # 5 second countdown before board is shown FIXME: NOT USED YET
 word = ""
 already_used_letter = []
 wordsGuessed = []
@@ -123,38 +124,31 @@ output = randomize_board()
 
 
 position_string_dict = dict()
+
+def get_grid_coords():
+    for x in range(5):
+        for y in range(5):
+            pos_x = int(x*partitioned_fifths + (partitioned_fifths * 0.5))
+            pos_y = int(y*partitioned_fifths + (y_letter_offset * 0.8) + (board_height * 0.2) / 3.56)
+            if check_collision_point_circle(get_mouse_position(), (pos_x, pos_y), 55):
+                return (x, y)
+    return None
+
 # returns letter at position of mouse, if within hitbox of a letter, else returns empty string
 def get_letter_at_position():
-        for x in range(5):
-            for y in range(5):
-                
-                pos_x = int(x*partitioned_fifths + (partitioned_fifths * 0.5))
-                pos_y = int(y*partitioned_fifths + (y_letter_offset * 0.8))
-                        
-                if (check_collision_point_circle(get_mouse_position(), (pos_x , pos_y + 44), 55)):
-                    letter_at_pos = position_string_dict[(pos_x, pos_y + 44)]
-                    return letter_at_pos
-                
-                else: continue  
-        return ""
+    coords = get_grid_coords()
+    if coords is not None:
+        x, y = coords
+        return output[x * 5 + y]
+    return ""
 
+# returns grid coordinates of letter at mouse position, if within hitbox of a letter
+# else returns None
 
-# returns cords of letter at position of mouse, if within hitbox of a letter, else returns empty tuple
 def get_cords():
-        for x in range(5):
-            for y in range(5):
-                
-                pos_x = int(x*partitioned_fifths + (partitioned_fifths * 0.5))
-                pos_y = int(y*partitioned_fifths + (y_letter_offset * 0.8))
-                        
-                if (check_collision_point_circle(get_mouse_position(), (pos_x, pos_y + 44), 55)):
-                    cord = (pos_x, pos_y + 44)
-                    return cord
-                
-                else: continue
+    return get_grid_coords()
 
-
-lastKnownPosition = ()
+lastKnownPosition = None
 
 # --- main loop ---
 while not window_should_close():
@@ -162,7 +156,7 @@ while not window_should_close():
     clear_background(WHITE)
 
     # click and drag to combine letters into word, release to submit word
-    # FIXME: it only prints the first letter, not sure how to make the tuple math work
+    # selection now uses grid coordinates for adjacency checks instead of pixel offsets
     if is_mouse_button_down(0):
         cord = get_cords()
         if cord and cord not in already_used_letter:
@@ -171,8 +165,6 @@ while not window_should_close():
                 word = word + letter
                 already_used_letter.append(cord)
                 lastKnownPosition = cord
-                print(f"Selected coordinate at position: {cord[0]}, {cord[1]}")
-                print(f"Last known position: {lastKnownPosition[0]}, {lastKnownPosition[1]}")
             else:
                 if abs(cord[0] - lastKnownPosition[0]) <= 1 and abs(cord[1] - lastKnownPosition[1]) <= 1:  # Check if the current position is adjacent to the last known position
                     letter = get_letter_at_position()
@@ -276,11 +268,11 @@ while not window_should_close():
                     int(y*partitioned_fifths + (y_letter_offset * 0.8))
                 )
             pos_x = int(x*partitioned_fifths + (partitioned_fifths * 0.5))
-            pos_y = int(y*partitioned_fifths + (y_letter_offset * 0.8))
+            pos_y = int(y*partitioned_fifths + (y_letter_offset * 0.8) + (board_height * 0.2) / 3.56)
             output_currently = output[i]
             draw_text_ex(boardFont, output[i], pos, boggleFontSize, 0, BLACK)
-            draw_circle_lines(pos_x, pos_y + 44, 55, RED);
-            position_string_dict[(pos_x, pos_y + 44)] = output_currently
+            draw_circle_lines(pos_x, pos_y, 55, RED);
+            position_string_dict[(pos_x, pos_y)] = output_currently
             i += 1
     
     end_drawing()
