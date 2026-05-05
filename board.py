@@ -27,7 +27,7 @@ from raylib import TextFormat
 
 # game variables for word bank of the player
 roundTime = 180 # 186 -> 3 min round timer
-roundCountdownTime = 6 # 5 second countdown before board is shown FIXME: NOT USED YET
+roundCountdownTime = 6 # 5 second countdown before board is shown 
 word = ""
 already_used_letter = []
 wordsGuessed = []
@@ -70,6 +70,7 @@ refresh_button_height = int(board_height * 0.1)
 newBoardButtonBounds = [refresh_button_x, refresh_button_y, 
              refresh_button_width, refresh_button_height]
 newBoardButtonClicked = False
+newBoardButtonColor = LIGHTGRAY
 
 # timer default variables
 timer_x =  int(board_width + ((window_width - board_width) * 0.2))
@@ -77,7 +78,10 @@ timer_y = int((board_height / 16) + 100)
 timer_width = int((window_width - board_width ) * 0.6)
 timer_height = int(board_height * 0.1)
 timerBounds = [timer_x, timer_y, timer_width, timer_height]
-threeMinuteTimer = time.time() + roundTime # add 5 sec grace- also much
+countdownTimer = time.time() + roundCountdownTime # countdown before round begins
+threeMinuteTimer = countdownTimer + roundTime # active round time
+timerButtonColor = YELLOW
+
 
 # --- generate board ONCE ---
 dice = {
@@ -154,6 +158,9 @@ lastKnownPosition = None
 while not window_should_close():
     begin_drawing()
     clear_background(WHITE)
+    # lowk this was meant to cover the board but i kinda fw it
+    draw_rectangle_gradient_ex(Rectangle(0, 0, board_width, board_height), 
+                                   PINK, YELLOW, WHITE, DARKBLUE) 
 
     # click and drag to combine letters into word, release to submit word
     # selection now uses grid coordinates for adjacency checks instead of pixel offsets
@@ -194,14 +201,13 @@ while not window_should_close():
             output = randomize_board()
             threeMinuteTimer = time.time() + roundTime # 186 sec- add 5 sec grace
             time.sleep(0.2) # debounce
-            wordsGuessed = []
+            wordsGuessed = []    
     else:
         newBoardButtonColor = LIGHTGRAY
     
-    
     # draw buttons and timer
     draw_rectangle_rec(newBoardButtonBounds, newBoardButtonColor)
-    draw_rectangle_rec(timerBounds, LIGHTGRAY)
+    draw_rectangle_rec(timerBounds, timerButtonColor)
 
 
     # draw refresh button
@@ -210,34 +216,6 @@ while not window_should_close():
                 Vector2(int(newBoardButtonBounds[0] + (newBoardButtonBounds[2] * 0.5) - (board_width * newGameFontSize * 0.0025)), 
                         int(newBoardButtonBounds[1] + (newBoardButtonBounds[3] * 0.4))), 
                 newGameFontSize, 1, BLACK)
-    
-    
-    # Timer countdown display
-    timerValue = int(threeMinuteTimer - time.time())
-    timerMin = int(abs(timerValue)) // 60
-    timerSec = int(abs(timerValue)) % 60
-    timerText = f"{timerMin:02d}:{timerSec:02d}"
-    draw_text_ex(timerFont, timerText,
-                Vector2(int(timerBounds[0] + (timerBounds[2] * timerFontSize * 0.0025)), 
-                        int(timerBounds[1] + (timerBounds[3] * 0.3))),
-                timerFontSize, 1, BLACK)
-
-    
-    # if timer = 0, timer flashes between red and grey
-    if timerValue <= 0 and (abs(timerValue) // 1) % 2 == 0: # first red lasts 2 seconds?, then 1 sec alt
-        draw_rectangle_rec(timerBounds, RED)
-        draw_text_ex(timerFont, "00:00",
-                Vector2(int(timerBounds[0] + (timerBounds[2] * timerFontSize * 0.0025)), 
-                        int(timerBounds[1] + (timerBounds[3] * 0.3))),
-                timerFontSize, 1, WHITE)
-        timerFlash = True
-    elif timerValue <= 0 and (abs(timerValue) // 1) % 2 != 0:
-        draw_rectangle_rec(timerBounds, GRAY)
-        draw_text_ex(timerFont, "00:00",
-                Vector2(int(timerBounds[0] + (timerBounds[2] * timerFontSize * 0.0025)), 
-                        int(timerBounds[1] + (timerBounds[3] * 0.3))),
-                timerFontSize, 1, WHITE)
-    
     
     # boggle board grid lines
     for x in range(5):
@@ -274,5 +252,64 @@ while not window_should_close():
             draw_circle_lines(pos_x, pos_y, 55, RED);
             position_string_dict[(pos_x, pos_y)] = output_currently
             i += 1
+    
+    # Timer countdown display
+    # this must come last so that the board can be "hidden" during countdown
+    # print(f"Countdown timer: {countdownTimer}, Current time: {time.time()}")
+    if int(countdownTimer - time.time()) > 0: # FIXME: this doesnt seem to activate at all
+        countdownTimerHolder = abs(int(countdownTimer - time.time()))
+        countdownTimerSec = int(abs(countdownTimerHolder % 60))
+        draw_text_ex(timerFont, f"00:{countdownTimerSec:02d}", 
+                    Vector2(int(timerBounds[0] + (timerBounds[2] * timerFontSize * 0.0025)), 
+                            int(timerBounds[1] + (timerBounds[3] * 0.3))), 
+                    timerFontSize, 1, BLACK)
+        timerButtonColor = YELLOW
+        # FIXME: play around with colors so its diff than the playing board background
+        draw_rectangle_gradient_ex(Rectangle(0, 0, board_width, board_height), 
+                                   PINK, YELLOW, WHITE, DARKBLUE)
+        # FIXME: center and enlarge countdown text
+        if countdownTimerSec > 3:
+            draw_text_ex(timerFont, "Ready!",
+                        Vector2(int(board_width / 2 - (timerFontSize * 3)), 
+                        int(board_height / 2 - (timerFontSize * 0.5))),
+                        timerFontSize, 1, BLACK)
+        elif countdownTimerSec <= 3 and countdownTimerSec > 1:
+            draw_text_ex(timerFont, "Set!",
+                        Vector2(int(board_width / 2 - (timerFontSize * 3)), 
+                        int(board_height / 2 - (timerFontSize * 0.5))),
+                        timerFontSize, 1, BLACK)
+        elif countdownTimerSec <= 1:
+            draw_text_ex(timerFont, "Go!",
+                        Vector2(int(board_width / 2 - (timerFontSize * 3)), 
+                        int(board_height / 2 - (timerFontSize * 0.5))),
+                        timerFontSize, 1, BLACK)
+    else:
+        timerButtonColor = LIGHTGRAY
+        timerValue = int(threeMinuteTimer - time.time())
+        # print(f"Timer value: {timerValue}, Three-minute timer: {threeMinuteTimer}")
+        timerMin = int(abs(timerValue)) // 60
+        timerSec = int(abs(timerValue)) % 60
+        timerText = f"{timerMin:02d}:{timerSec:02d}"
+        draw_text_ex(timerFont, timerText,
+                    Vector2(int(timerBounds[0] + (timerBounds[2] * timerFontSize * 0.0025)), 
+                            int(timerBounds[1] + (timerBounds[3] * 0.3))),
+                    timerFontSize, 1, BLACK)
+        # if timer = 0, timer flashes between red and grey
+        if timerValue <= 0 and (abs(timerValue) // 1) % 2 == 0: # first red lasts 2 seconds?, then 1 sec alt
+            draw_rectangle_rec(timerBounds, RED)
+            draw_text_ex(timerFont, "00:00",
+                    Vector2(int(timerBounds[0] + (timerBounds[2] * timerFontSize * 0.0025)), 
+                            int(timerBounds[1] + (timerBounds[3] * 0.3))),
+                    timerFontSize, 1, WHITE)
+            timerFlash = True
+        elif timerValue <= 0 and (abs(timerValue) // 1) % 2 != 0:
+            draw_rectangle_rec(timerBounds, GRAY)
+            draw_text_ex(timerFont, "00:00",
+                    Vector2(int(timerBounds[0] + (timerBounds[2] * timerFontSize * 0.0025)), 
+                            int(timerBounds[1] + (timerBounds[3] * 0.3))),
+                    timerFontSize, 1, WHITE)
+        
+    
+    
     
     end_drawing()
