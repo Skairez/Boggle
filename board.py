@@ -1,7 +1,7 @@
 from pyray import *
 import random
 import time
-from raylib import TextFormat
+from raylib import GetColor, TextFormat
 
 ## TO DO
 
@@ -21,20 +21,28 @@ from raylib import TextFormat
 # - [DONE]: rn any click will add a word, but should specify that the click must contain 1 letter/bound
 # - [DONE]: "new game" will still countdown the main timer while the board countdown is happening
 
+
 # DESIGN:
 # - hover on word and see how it got made show the lines (daniel task)
 # - connect letters with lines maybe animate (daniel task)
 # - [DONE] add a cover for the 5 second grade period then "READY? START" reveal
 #   #   # FIXME: maybe change colors for coluntdown or board BG, optional
+# FIXME: adding new hitbox "die face" underneath letters, fix hitboxes instead of circles
+#        use the die as a hitbox, maybe check collision polygon and insert draw_rectangle_rounded
 
 
 # game variables for word bank of the player
-roundTime = 180 # 186 -> 3 min round timer
-roundCountdownTime = 6 # 5 second countdown before board is shown 
+roundTime = 180 # 180 -> 3 min round timer
+roundCountdownTime = 6 # 5 second countdown before board is shown (put 6 for 5)
 word = ""
 already_used_letter = []
 wordsGuessed = []
 
+# colors
+dieColor = GetColor(0xF7EED2ff)
+countdownBackgroundColors = (PINK, YELLOW, WHITE, DARKBLUE)
+boardBackgroundColors = (GetColor(0x44519Cff), GetColor(0x187F8Bff),
+                         GetColor(0x060914ff), GetColor(0x187F8Bff))
 
 #sizing parameter for the window
 window_width = 1000
@@ -166,7 +174,8 @@ while not window_should_close():
     clear_background(WHITE)
     # lowk this was meant to cover the board but i kinda fw it
     draw_rectangle_gradient_ex(Rectangle(0, 0, board_width, board_height), 
-                                   PINK, YELLOW, WHITE, DARKBLUE) 
+                                   boardBackgroundColors[0], boardBackgroundColors[1],
+                                   boardBackgroundColors[2], boardBackgroundColors[3]) 
 
     # click and drag to combine letters into word, release to submit word
     # selection now uses grid coordinates for adjacency checks instead of pixel offsets
@@ -238,9 +247,14 @@ while not window_should_close():
     i = 0
     for x in range(5):
         for y in range(5):
-            if len(output[i]) > 1:
+            if output[i] == "IN":
                 pos = Vector2(
-                    int(x*partitioned_fifths + (partitioned_fifths * 0.5) - (boggleFontSize * 0.55)),
+                    int(x*partitioned_fifths + (partitioned_fifths * 0.5) - (boggleFontSize * 0.35)),
+                    int(y*partitioned_fifths + (y_letter_offset * 0.8))
+                )
+            elif len(output[i]) > 1:
+                pos = Vector2(
+                    int(x*partitioned_fifths + (partitioned_fifths * 0.5) - (boggleFontSize * 0.52)),
                     int(y*partitioned_fifths + (y_letter_offset * 0.8))
                 )
             elif output[i] == "I":
@@ -255,10 +269,13 @@ while not window_should_close():
                 )
             pos_x = int(x*partitioned_fifths + (partitioned_fifths * 0.5))
             pos_y = int(y*partitioned_fifths + (y_letter_offset * 0.8) + (board_height * 0.2) / 3.56)
-            letterDieFace = (pos_x, pos_y)
+            letterDieFace = (x*partitioned_fifths + (partitioned_fifths * 0.05), 
+                             y*partitioned_fifths + (partitioned_fifths * 0.05), 
+                             partitioned_fifths * 0.9, 
+                             partitioned_fifths * 0.9)
             output_currently = output[i]
             # FIXME: not displaying under the letter :(
-            draw_rectangle_rounded(letterDieFace, 0.5, 10, WHITE);
+            draw_rectangle_rounded(letterDieFace, 0.5, 10, dieColor);
             draw_text_ex(boardFont, output[i], pos, boggleFontSize, 0, BLACK)
             # draw_circle_lines(pos_x, pos_y, 55, RED);
             position_string_dict[(pos_x, pos_y)] = output_currently
@@ -321,6 +338,7 @@ while not window_should_close():
                     timerFontSize, 1, WHITE)
         
     
-    
+    # draw_rectangle_rounded((0, 0, board_width, board_height), 0.5, 10, WHITE);
+
     
     end_drawing()
