@@ -17,12 +17,15 @@ from raylib import TextFormat
 # - score points based on word length, flag words not in dictionary and give players option to vote to accept word into dict
 # - make statistics for words played
 # - MULTIPLAYER
-# - [DONE]add validate logic that allows only letters to connect to adjacent letters
+# - [DONE] add validate logic that allows only letters to connect to adjacent letters
+# - [DONE]: rn any click will add a word, but should specify that the click must contain 1 letter/bound
+# - [DONE]: "new game" will still countdown the main timer while the board countdown is happening
 
 # DESIGN:
 # - hover on word and see how it got made show the lines (daniel task)
 # - connect letters with lines maybe animate (daniel task)
-# - add a cover for the 5 second grade period then "READY? START" reveal
+# - [DONE] add a cover for the 5 second grade period then "READY? START" reveal
+#   #   # FIXME: maybe change colors for coluntdown or board BG, optional
 
 
 # game variables for word bank of the player
@@ -55,10 +58,12 @@ boggleFontSize = int(board_height * 0.15)
 newGameFontSize = int(board_height * 0.035)
 timerFontSize = int(board_height * 0.05)
 guessesFontSize = int(board_height * 0.03)
+countdownFontSize = int(board_height * 0.25)
 boardFont = load_font_ex("PlatNomor.ttf", boggleFontSize, None, 95)
 newGameFont = load_font_ex("PlatNomor.ttf", newGameFontSize, None, 95)
 timerFont = load_font_ex("PlatNomor.ttf", timerFontSize, None, 95)
 guessesFont = load_font_ex("PlatNomor.ttf", guessesFontSize, None, 95)
+countdownFont = load_font_ex("PlatNomor.ttf", countdownFontSize, None, 95)
 
 
 # FIXME: these buttons can be simplified into a class for size, only Y level changing
@@ -149,6 +154,7 @@ def get_letter_at_position():
 # returns grid coordinates of letter at mouse position, if within hitbox of a letter
 # else returns None
 
+# FIXME: this is uh.... yeah lol
 def get_cords():
     return get_grid_coords()
 
@@ -178,7 +184,7 @@ while not window_should_close():
                     word = word + letter
                     already_used_letter.append(cord)
                     lastKnownPosition = cord
-    if is_mouse_button_released(0):
+    if is_mouse_button_released(0) and word != "":
         wordsGuessed.append(word)
         word = ""
         already_used_letter.clear()
@@ -199,15 +205,17 @@ while not window_should_close():
         if is_mouse_button_pressed(0):
             newBoardButtonClicked = True
             output = randomize_board()
-            threeMinuteTimer = time.time() + roundTime # 186 sec- add 5 sec grace
+            # idk i just add countdown into 3m timer cause it dont work otherwise lul
+            threeMinuteTimer = time.time() + roundTime + roundCountdownTime # 186 sec- add 5 sec grace
+            countdownTimer = time.time() + roundCountdownTime
             time.sleep(0.2) # debounce
             wordsGuessed = []    
     else:
         newBoardButtonColor = LIGHTGRAY
     
     # draw buttons and timer
-    draw_rectangle_rec(newBoardButtonBounds, newBoardButtonColor)
-    draw_rectangle_rec(timerBounds, timerButtonColor)
+    draw_rectangle_rounded(newBoardButtonBounds, .5, 10, newBoardButtonColor)
+    draw_rectangle_rounded(timerBounds, .5, 10, timerButtonColor)
 
 
     # draw refresh button
@@ -247,9 +255,12 @@ while not window_should_close():
                 )
             pos_x = int(x*partitioned_fifths + (partitioned_fifths * 0.5))
             pos_y = int(y*partitioned_fifths + (y_letter_offset * 0.8) + (board_height * 0.2) / 3.56)
+            letterDieFace = (pos_x, pos_y)
             output_currently = output[i]
+            # FIXME: not displaying under the letter :(
+            draw_rectangle_rounded(letterDieFace, 0.5, 10, WHITE);
             draw_text_ex(boardFont, output[i], pos, boggleFontSize, 0, BLACK)
-            draw_circle_lines(pos_x, pos_y, 55, RED);
+            # draw_circle_lines(pos_x, pos_y, 55, RED);
             position_string_dict[(pos_x, pos_y)] = output_currently
             i += 1
     
@@ -269,20 +280,20 @@ while not window_should_close():
                                    PINK, YELLOW, WHITE, DARKBLUE)
         # FIXME: center and enlarge countdown text
         if countdownTimerSec > 3:
-            draw_text_ex(timerFont, "Ready!",
-                        Vector2(int(board_width / 2 - (timerFontSize * 3)), 
-                        int(board_height / 2 - (timerFontSize * 0.5))),
-                        timerFontSize, 1, BLACK)
+            draw_text_ex(countdownFont, "Ready?",
+                        Vector2(int(board_width * 0.15), 
+                        int(board_height / 2 - (countdownFontSize * 0.5))),
+                        countdownFontSize, 1, BLACK)
         elif countdownTimerSec <= 3 and countdownTimerSec > 1:
-            draw_text_ex(timerFont, "Set!",
-                        Vector2(int(board_width / 2 - (timerFontSize * 3)), 
-                        int(board_height / 2 - (timerFontSize * 0.5))),
-                        timerFontSize, 1, BLACK)
+            draw_text_ex(countdownFont, "Set...",
+                        Vector2(int(board_width * 0.3), 
+                        int(board_height / 2 - (countdownFontSize * 0.5))),
+                        countdownFontSize, 1, BLACK)
         elif countdownTimerSec <= 1:
-            draw_text_ex(timerFont, "Go!",
-                        Vector2(int(board_width / 2 - (timerFontSize * 3)), 
-                        int(board_height / 2 - (timerFontSize * 0.5))),
-                        timerFontSize, 1, BLACK)
+            draw_text_ex(countdownFont, "Go!",
+                        Vector2(int(board_width * 0.35), 
+                        int(board_height / 2 - (countdownFontSize * 0.5))),
+                        countdownFontSize, 1, BLACK)
     else:
         timerButtonColor = LIGHTGRAY
         timerValue = int(threeMinuteTimer - time.time())
