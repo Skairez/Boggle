@@ -1,6 +1,7 @@
 from pyray import *
 import random
 import time
+from pathlib import Path
 from raylib import GetColor, TextFormat
 
 ## TO DO
@@ -29,7 +30,7 @@ from raylib import GetColor, TextFormat
 #   #   # FIXME: maybe change colors for coluntdown or board BG, optional
 # FIXME: adding new hitbox "die face" underneath letters, fix hitboxes instead of circles
 #        use the die as a hitbox, maybe check collision polygon and insert draw_rectangle_rounded
-
+# - make invalid word feedback prettier and fix formatting for current word spelling
 
 # game variables for word bank of the player
 roundTime = 180 # 180 -> 3 min round timer
@@ -37,9 +38,13 @@ roundCountdownTime = 6 # 5 second countdown before board is shown (put 6 for 5)
 word = ""
 already_used_letter = []
 wordsGuessed = []
+invalid_word_message = ""
+invalid_message_time = 0.0
+INVALID_MESSAGE_DURATION = 2.5
 
 # colors
 dieColor = GetColor(0xF7EED2ff)
+selected_die_color = GetColor(0xF0D56Cff)
 countdownBackgroundColors = (PINK, YELLOW, WHITE, DARKBLUE)
 boardBackgroundColors = (GetColor(0x44519Cff), GetColor(0x187F8Bff),
                          GetColor(0x060914ff), GetColor(0x187F8Bff))
@@ -67,11 +72,13 @@ newGameFontSize = int(board_height * 0.035)
 timerFontSize = int(board_height * 0.05)
 guessesFontSize = int(board_height * 0.03)
 countdownFontSize = int(board_height * 0.25)
+invalidMessageFontSize = int(board_height * 0.04)
 boardFont = load_font_ex("PlatNomor.ttf", boggleFontSize, None, 95)
 newGameFont = load_font_ex("PlatNomor.ttf", newGameFontSize, None, 95)
 timerFont = load_font_ex("PlatNomor.ttf", timerFontSize, None, 95)
 guessesFont = load_font_ex("PlatNomor.ttf", guessesFontSize, None, 95)
 countdownFont = load_font_ex("PlatNomor.ttf", countdownFontSize, None, 95)
+invalidMessageFont = load_font_ex("PlatNomor.ttf", invalidMessageFontSize, None, 95)
 
 
 # FIXME: these buttons can be simplified into a class for size, only Y level changing
@@ -94,6 +101,12 @@ timerBounds = [timer_x, timer_y, timer_width, timer_height]
 countdownTimer = time.time() + roundCountdownTime # countdown before round begins
 threeMinuteTimer = countdownTimer + roundTime # active round time
 timerButtonColor = YELLOW
+
+current_word_box_height = int(board_height * 0.12)
+current_word_box_bounds = [refresh_button_x,
+                           board_height - current_word_box_height - int(board_height * 0.03),
+                           refresh_button_width,
+                           current_word_box_height]
 
 
 # --- generate board ONCE ---
@@ -140,7 +153,28 @@ def randomize_board():
 output = randomize_board()
 
 
+def load_word_list():
+    word_file = Path(__file__).resolve().parent / "words.txt"
+    if not word_file.exists():
+        return set()
+    with word_file.open("r", encoding="utf-8") as f:
+        # Normalize words to uppercase so matching is case-insensitive.
+        return {line.strip().upper() for line in f if line.strip()}
+
+valid_words = load_word_list()
+
 position_string_dict = dict()
+
+def get_letter_center(cord):
+    return Vector2(
+        int(cord[0] * partitioned_fifths + (partitioned_fifths * 0.5)),
+        int(cord[1] * partitioned_fifths + (y_letter_offset * 0.8) + (board_height * 0.2) / 3.56)
+    )
+
+
+def build_word_from_positions(positions):
+    return "".join(output[pos[0] * 5 + pos[1]] for pos in positions)
+
 
 def get_grid_coords():
     for x in range(5):
@@ -177,24 +211,50 @@ while not window_should_close():
                                    boardBackgroundColors[0], boardBackgroundColors[1],
                                    boardBackgroundColors[2], boardBackgroundColors[3]) 
 
+    # draw the path between selected letters while spelling a word
+    if len(already_used_letter) >= 2:
+        for start_pos, end_pos in zip(already_used_letter, already_used_letter[1:]):
+            draw_line_ex(get_letter_center(start_pos), get_letter_center(end_pos), 12, RED)
+
+    if is_mouse_button_down(0) and already_used_letter:
+        last_pos = get_letter_center(already_used_letter[-1])
+        mouse_pos = get_mouse_position()
+        draw_line_ex(last_pos, mouse_pos, 6, RED)
+
     # click and drag to combine letters into word, release to submit word
     # selection now uses grid coordinates for adjacency checks instead of pixel offsets
     if is_mouse_button_down(0):
         cord = get_cords()
-        if cord and cord not in already_used_letter:
-            if not lastKnownPosition:  # If this is the first letter being selected
+        if cord:
+            if not already_used_letter:
                 letter = get_letter_at_position()
-                word = word + letter
-                already_used_letter.append(cord)
-                lastKnownPosition = cord
-            else:
-                if abs(cord[0] - lastKnownPosition[0]) <= 1 and abs(cord[1] - lastKnownPosition[1]) <= 1:  # Check if the current position is adjacent to the last known position
-                    letter = get_letter_at_position()
-                    word = word + letter
+                if letter:
                     already_used_letter.append(cord)
+                    word = build_word_from_positions(already_used_letter)
+                    lastKnownPosition = cord
+            elif cord == already_used_letter[-2] if len(already_used_letter) >= 2 else False:
+                already_used_letter.pop()
+                word = build_word_from_positions(already_used_letter)
+                lastKnownPosition = already_used_letter[-1] if already_used_letter else None
+            elif cord not in already_used_letter:
+                if abs(cord[0] - lastKnownPosition[0]) <= 1 and abs(cord[1] - lastKnownPosition[1]) <= 1:
+                    letter = get_letter_at_position()
+                    already_used_letter.append(cord)
+                    word = build_word_from_positions(already_used_letter)
                     lastKnownPosition = cord
     if is_mouse_button_released(0) and word != "":
-        wordsGuessed.append(word)
+        candidate = word.upper()
+        if candidate in valid_words and len(candidate) >= 4 and candidate not in wordsGuessed:
+            wordsGuessed.append(candidate)
+        elif candidate in wordsGuessed:
+            invalid_word_message = "Word already guessed"
+            invalid_message_time = time.time()
+        elif len(candidate) < 4:
+            invalid_word_message = "Word must be at least 4 letters"
+            invalid_message_time = time.time()
+        else:
+            invalid_word_message = "Not a valid word"
+            invalid_message_time = time.time()
         word = ""
         already_used_letter.clear()
         lastKnownPosition = ()
@@ -204,7 +264,7 @@ while not window_should_close():
         draw_text_ex(guessesFont, f"{i}. {w}", 
                      Vector2(refresh_button_x, (refresh_button_y + (board_height * 0.3)) + (i * (guessesFontSize))), 
                      guessesFontSize, 1, BLACK)
-    
+
     
     # refresh button checking for hover of mouse to turn green
     newBoardButtonClicked = False
@@ -233,6 +293,14 @@ while not window_should_close():
                 Vector2(int(newBoardButtonBounds[0] + (newBoardButtonBounds[2] * 0.5) - (board_width * newGameFontSize * 0.0025)), 
                         int(newBoardButtonBounds[1] + (newBoardButtonBounds[3] * 0.4))), 
                 newGameFontSize, 1, BLACK)
+
+    # current word box
+    if is_mouse_button_down(0) and word:
+        draw_rectangle_rounded(Rectangle(current_word_box_bounds[0], current_word_box_bounds[1],
+                                         current_word_box_bounds[2], current_word_box_bounds[3]), .35, 10, LIGHTGRAY)
+        draw_text_ex(guessesFont, f"Current: {word}",
+                     Vector2(current_word_box_bounds[0] + 12, current_word_box_bounds[1] + 12),
+                     guessesFontSize, 1, BLACK)
     
     # boggle board grid lines
     for x in range(5):
@@ -274,10 +342,11 @@ while not window_should_close():
                              partitioned_fifths * 0.9, 
                              partitioned_fifths * 0.9)
             output_currently = output[i]
-            # FIXME: not displaying under the letter :(
-            draw_rectangle_rounded(letterDieFace, 0.5, 10, dieColor);
+            cell_coord = (x, y)
+            letter_color = selected_die_color if cell_coord in already_used_letter else dieColor
+            # highlight selected letter die faces for clarity
+            draw_rectangle_rounded(letterDieFace, 0.5, 10, letter_color)
             draw_text_ex(boardFont, output[i], pos, boggleFontSize, 0, BLACK)
-            # draw_circle_lines(pos_x, pos_y, 55, RED);
             position_string_dict[(pos_x, pos_y)] = output_currently
             i += 1
     
@@ -337,7 +406,17 @@ while not window_should_close():
                             int(timerBounds[1] + (timerBounds[3] * 0.3))),
                     timerFontSize, 1, WHITE)
         
+        # show invalid word feedback for a short time
     
+    # show invalid word feedback for a short time
+    if invalid_word_message:
+        if time.time() - invalid_message_time < INVALID_MESSAGE_DURATION:
+            draw_text_ex(guessesFont, invalid_word_message,
+                         Vector2(board_width * 0.5, 
+                                 refresh_button_y + (board_height * 0.25)),
+                         invalidMessageFontSize, 1, RED)
+        else:
+            invalid_word_message = ""
     # draw_rectangle_rounded((0, 0, board_width, board_height), 0.5, 10, WHITE);
 
     
