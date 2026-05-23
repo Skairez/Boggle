@@ -3,6 +3,7 @@ import random
 import time
 from pathlib import Path
 from raylib import GetColor, TextFormat
+import pyperclip
 
 ## TO DO
 
@@ -21,7 +22,7 @@ from raylib import GetColor, TextFormat
 # - [DONE] add validate logic that allows only letters to connect to adjacent letters
 # - [DONE]: rn any click will add a word, but should specify that the click must contain 1 letter/bound
 # - [DONE]: "new game" will still countdown the main timer while the board countdown is happening
-# - add a "seed" gameplay option for multiplayer without server
+# - FIXME: seed pasting does not work at the moment
 
 # DESIGN:
 # - hover on word and see how it got made show the lines (daniel task)
@@ -34,7 +35,7 @@ from raylib import GetColor, TextFormat
 
 # game variables for word bank of the player
 roundTime = 180 # 180 -> 3 min round timer
-roundCountdownTime = 0 # 5 second countdown before board is shown (put 6 for 5)
+roundCountdownTime = 6 # 5 second countdown before board is shown (put 6 for 5)
 word = ""
 already_used_letter = []
 wordsGuessed = []
@@ -95,9 +96,9 @@ newBoardButtonBounds = [refresh_button_x, refresh_button_y,
 newBoardButtonClicked = False
 newBoardButtonColor = LIGHTGRAY
 
-# timer default variables
+# timer button default variables
 timer_x =  int(board_width + ((window_width - board_width) * 0.2))
-timer_y = int((board_height / 16) + 100)
+timer_y = int((board_height / 16) + 100) # magic number
 timer_width = int((window_width - board_width ) * 0.6)
 timer_height = int(board_height * 0.1)
 timerBounds = [timer_x, timer_y, timer_width, timer_height]
@@ -107,10 +108,19 @@ timerButtonColor = YELLOW
 
 current_word_box_height = int(board_height * 0.12)
 current_word_box_bounds = [refresh_button_x,
-                           int((board_height / 16) + 200),
+                           int((board_height / 16) + 200), # magic number
                            refresh_button_width,
                            current_word_box_height]
 
+# copy seed button variables
+seed_button_x = int(board_width + ((window_width - board_width) * 0.2))
+seed_button_y = int((board_height / 16) + ((board_height / 8) * 6))
+seed_button_width = int((window_width - board_width ) * 0.6)
+seed_button_height = int(board_height * 0.1)
+seedButtonBounds = [seed_button_x, seed_button_y, 
+             seed_button_width, seed_button_height]
+seedButtonColor = LIGHTGRAY
+seedLockoutTime = 0.0 # lockout time for seed button to prevent multiple clicks
 
 # --- generate board ONCE ---
 # seed generation is based on 2 digit to get the array
@@ -147,31 +157,42 @@ dice = {
         # 25 : ['K', 'I', 'QU', 'W', 'L', 'U'] # no implementation for adding extra die yet, MUST be commented out
     }
 
-# randomize function: scrambles arrays of letters
-def randomize_board():
-    global seed
-    # FIXME ask user if has a seed, or make separate generate w seed button
-    if seed != "": # FIXME rn this should cause the board to gen the same board
-        output = [] # FIXME actually this just crashes it
-        for i in range(0, len(seed), 3):
-            die_index = int(seed[i:i+2])
-            letter_index = int(seed[i+2])
-            output.append(dice[die_index][letter_index])
-        return output
-    else:
-        output = []
-        return output
-output = randomize_board()
-
 # add copy/paste seed functions
 # generate seed function
 def generate_seed():
+    global seed
     seed = ""
     for i in range(25):
         die_index = random.randint(0, 24)
         letter_index = random.randint(0, 5)
         seed += f"{die_index:02d}{letter_index}"
     return seed
+
+def paste_seed():
+    global seed
+    seed = input("Enter seed: ")
+    return seed
+
+# randomize function: scrambles arrays of letters
+def randomize_board():
+    global seed
+    # FIXME ask user if has a seed, or make separate generate w seed button
+    if seed != "": 
+        output = [] 
+        for i in range(0, len(seed), 3):
+            die_index = int(seed[i:i+2])
+            letter_index = int(seed[i+2])
+            output.append(dice[die_index][letter_index])
+        return output
+    else:
+        seed = generate_seed()
+        output = []
+        for i in range(0, len(seed), 3):
+            die_index = int(seed[i:i+2])
+            letter_index = int(seed[i+2])
+            output.append(dice[die_index][letter_index])
+        return output
+
 
 def load_word_list():
     word_file = Path(__file__).resolve().parent / "words.txt"
@@ -249,17 +270,27 @@ while not window_should_close():
                     Vector2(int(board_width * 0.2), 
                     int(board_height * 0.65)),
                     seedSelectFontSize, 1, BLACK)
+        # checks if user clicks generate board button
         if is_mouse_button_pressed(0) and check_mouse_in_button(genBoardButtonBounds):
             output = randomize_board()
             # idk i just add countdown into 3m timer cause it dont work otherwise lul
             threeMinuteTimer = time.time() + roundTime + roundCountdownTime # 186 sec- add 5 sec grace
             countdownTimer = time.time() + roundCountdownTime
             time.sleep(0.2) # debounce
+        # checks if user clicks paste seed button
         elif is_mouse_button_pressed(0) and check_mouse_in_button(pasteSeedButtonBounds):
-            draw_text_ex(seedSelectFont, "Paste seed in console and press Enter:",
-                        Vector2(int(board_width * 0.1), 
-                                int(board_height * 0.7)),
-                        seedSelectFontSize, 1, BLACK)
+            seed = paste_seed()
+            if len(seed) != 75: # FIXME: this is a really janky way to check if the seed is valid
+                draw_text_ex(seedSelectFont, "Invalid seed!",
+                            Vector2(int(board_width * 0.1), 
+                                    int(board_height * 0.7)),
+                            seedSelectFontSize, 1, BLACK)
+            else:
+                draw_text_ex(seedSelectFont, "Seed pasted!",
+                            Vector2(int(board_width * 0.1), 
+                                    int(board_height * 0.7)),
+                            seedSelectFontSize, 1, BLACK)
+                randomize_board() # generate board with pasted seed
     else:
         # lowk this was meant to cover the board but i kinda fw it
         draw_rectangle_gradient_ex(Rectangle(0, 0, board_width, board_height), 
@@ -352,6 +383,23 @@ while not window_should_close():
             draw_text_ex(guessesFont, f"Current: \n {word}",
                         Vector2(current_word_box_bounds[0] + 12, current_word_box_bounds[1] + 12),
                         guessesFontSize, 1, BLACK)
+        
+        # seed color change on hover
+        if (check_collision_point_rec(get_mouse_position(), seedButtonBounds)) and seed != "" and seedLockoutTime < time.time(): # add lockout time to prevent multiple clicks from one click
+            seedButtonColor = GREEN
+            if is_mouse_button_pressed(0): 
+                seedLockoutTime = time.time() + 1 # 1 second lockout to prevent multiple clicks
+                seedButtonColor = BEIGE
+                pyperclip.copy(seed)
+        elif seedLockoutTime < time.time(): # if not hovering and not in lockout, keep light gray
+            seedButtonColor = LIGHTGRAY
+
+        # seed copy to clipboard button
+        draw_rectangle_rounded(seedButtonBounds, .5, 10, seedButtonColor)
+        draw_text_ex(newGameFont, "Copy Seed", 
+                    Vector2(int(seedButtonBounds[0] + (seedButtonBounds[2] * 0.5) - (board_width * newGameFontSize * 0.0025)), 
+                            int(seedButtonBounds[1] + (seedButtonBounds[3] * 0.4))), 
+                    newGameFontSize, 1, BLACK)
         
         # boggle board grid lines
         for x in range(5):
