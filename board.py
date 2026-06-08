@@ -290,7 +290,7 @@ while not window_should_close():
                             Vector2(int(board_width * 0.1), 
                                     int(board_height * 0.7)),
                             seedSelectFontSize, 1, BLACK)
-                randomize_board() # generate board with pasted seed
+                output = randomize_board() # generate board with pasted seed
     else:
         # lowk this was meant to cover the board but i kinda fw it
         draw_rectangle_gradient_ex(Rectangle(0, 0, board_width, board_height), 
